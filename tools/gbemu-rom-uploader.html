@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GBEMU ROM Importer</title>
+    <style>
+        :root {
+            color: #17211e;
+            background: #e8eee8;
+            font-family: "Trebuchet MS", sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-width: 320px;
+            background: repeating-linear-gradient(90deg, #e8eee8 0, #e8eee8 24px, #e2e9e2 25px);
+        }
+
+        main {
+            box-sizing: border-box;
+            max-width: 920px;
+            margin: 32px auto;
+            padding: 24px;
+        }
+
+        header {
+            border-bottom: 3px solid #17211e;
+            padding-bottom: 16px;
+        }
+
+        h1,
+        p {
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 28px;
+            letter-spacing: 0;
+        }
+
+        .eyebrow {
+            margin-bottom: 6px;
+            color: #3c6552;
+            font-family: "Courier New", monospace;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
+            gap: 10px;
+            align-items: end;
+            padding: 20px 0 12px;
+        }
+
+        label {
+            display: grid;
+            gap: 7px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        input,
+        button,
+        textarea {
+            box-sizing: border-box;
+            border: 2px solid #17211e;
+            border-radius: 4px;
+            font: inherit;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            background: #ffffff;
+        }
+
+        button {
+            min-height: 39px;
+            padding: 8px 12px;
+            background: #78c895;
+            color: #17211e;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:disabled {
+            background: #b7c4ba;
+            color: #516058;
+            cursor: not-allowed;
+        }
+
+        .status {
+            min-height: 20px;
+            margin: 4px 0 12px;
+            color: #3c6552;
+            font-family: "Courier New", monospace;
+            font-size: 13px;
+        }
+
+        .status.error {
+            color: #9a2c2c;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 330px;
+            resize: vertical;
+            padding: 12px;
+            background: #12221b;
+            color: #d8f3db;
+            font-family: "Courier New", monospace;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        @media (max-width: 620px) {
+            main {
+                margin: 12px auto;
+                padding: 16px;
+            }
+
+            .controls {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            label {
+                grid-column: 1 / -1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <header>
+            <p class="eyebrow">BANGLE.JS 2 / DMG</p>
+            <h1>GBEMU ROM Importer</h1>
+        </header>
+        <section class="controls" aria-label="ROM import controls">
+            <label for="rom-file">
+                DMG ROM
+                <input id="rom-file" type="file" accept=".gb,.bin,application/octet-stream">
+            </label>
+            <button id="build" type="button" disabled>Build Script</button>
+            <button id="copy" type="button" disabled>Copy</button>
+        </section>
+        <p id="status" class="status" role="status">Choose a DMG ROM file.</p>
+        <textarea id="script" readonly spellcheck="false" aria-label="Web IDE upload script"></textarea>
+    </main>
+    <script>
+        (function () {
+            "use strict";
+
+            var INDEX_FILE = "gbemu.roms.json";
+            var ROM_CHUNK_SIZE = 384;
+            var selectedBytes;
+            var selectedEntry;
+            var fileInput = document.getElementById("rom-file");
+            var buildButton = document.getElementById("build");
+            var copyButton = document.getElementById("copy");
+            var status = document.getElementById("status");
+            var output = document.getElementById("script");
+
+            function setStatus(message, isError) {
+                status.textContent = message;
+                status.className = isError ? "status error" : "status";
+            }
+
+            function crc32(bytes) {
+                var crc = 0xffffffff;
+                var index;
+                var bit;
+
+                for (index = 0; index < bytes.length; index += 1) {
+                    crc ^= bytes[index];
+                    for (bit = 0; bit < 8; bit += 1) {
+                        crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+                    }
+                }
+
+                return (crc ^ 0xffffffff) >>> 0;
+            }
+
+            function mapperFrom(type) {
+                if (type === 0x00 || type === 0x08 || type === 0x09) return "ROM ONLY";
+                if (type === 0x01 || type === 0x02 || type === 0x03) return "MBC1";
+                if (type === 0x05 || type === 0x06) return "MBC2";
+                if (type >= 0x0f && type <= 0x13) return "MBC3";
+                if (type >= 0x19 && type <= 0x1e) return "MBC5";
+                return undefined;
+            }
+
+            function titleFrom(bytes) {
+                var title = "";
+                var index;
+                var value;
+
+                for (index = 0x134; index < 0x144; index += 1) {
+                    value = bytes[index];
+                    if (!value) break;
+                    title += value >= 32 && value < 127 ? String.fromCharCode(value) : " ";
+                }
+
+                return title.trim() || "Untitled ROM";
+            }
+
+            function entryFrom(bytes) {
+                var mapper;
+                var checksum;
+
+                if (bytes.length < 0x150) throw new Error("Not a valid DMG ROM");
+                if (bytes[0x143] !== 0 && bytes[0x143] !== 0x80) {
+                    throw new Error("CGB-only ROMs are unsupported");
+                }
+
+                mapper = mapperFrom(bytes[0x147]);
+                if (!mapper) {
+                    throw new Error("Unsupported mapper 0x" + bytes[0x147].toString(16));
+                }
+
+                checksum = crc32(bytes).toString(16);
+                return {
+                    title: titleFrom(bytes),
+                    file: "gbemu.rom." + checksum,
+                    mapper: mapper,
+                    crc: checksum,
+                    size: bytes.length,
+                };
+            }
+
+            function binaryString(bytes) {
+                var result = "";
+                var index;
+
+                for (index = 0; index < bytes.length; index += 1) {
+                    result += String.fromCharCode(bytes[index]);
+                }
+                return result;
+            }
+
+            function writeChunk(name, bytes, offset, totalSize) {
+                var line =
+                    "Storage.write(" +
+                    JSON.stringify(name) +
+                    ", atob(" +
+                    JSON.stringify(btoa(binaryString(bytes))) +
+                    "), " +
+                    offset;
+
+                if (offset === 0) line += ", " + totalSize;
+                return line + ");";
+            }
+
+            function buildScript(entry, bytes) {
+                var lines = [
+                    "var Storage = require(\"Storage\");",
+                    "print(" + JSON.stringify("GBEMU: importing " + entry.title + "...") + ");",
+                ];
+                var offset;
+                var chunk;
+
+                for (offset = 0; offset < bytes.length; offset += ROM_CHUNK_SIZE) {
+                    chunk = bytes.subarray(offset, offset + ROM_CHUNK_SIZE);
+                    lines.push(writeChunk(entry.file, chunk, offset, bytes.length));
+                }
+
+                lines.push("var entry = " + JSON.stringify(entry) + ";");
+                lines.push("var roms = Storage.readJSON(" + JSON.stringify(INDEX_FILE) + ", 1);");
+                lines.push("if (!Array.isArray(roms)) roms = [];");
+                lines.push(
+                    "roms = roms.filter(function (existing) { return existing.file !== entry.file; });",
+                );
+                lines.push("roms.push(entry);");
+                lines.push("Storage.write(" + JSON.stringify(INDEX_FILE) + ", JSON.stringify(roms));");
+                lines.push("print(" + JSON.stringify("GBEMU: installed " + entry.title) + ");");
+                lines.push('load("gbemu.app.js");');
+                return lines.join("\n");
+            }
+
+            function clearSelection(message) {
+                selectedBytes = undefined;
+                selectedEntry = undefined;
+                buildButton.disabled = true;
+                copyButton.disabled = true;
+                output.value = "";
+                setStatus(message, true);
+            }
+
+            fileInput.addEventListener("change", function () {
+                var file = fileInput.files[0];
+                var reader;
+
+                if (!file) return;
+                reader = new FileReader();
+                reader.onload = function () {
+                    try {
+                        selectedBytes = new Uint8Array(reader.result);
+                        selectedEntry = entryFrom(selectedBytes);
+                        buildButton.disabled = false;
+                        copyButton.disabled = true;
+                        output.value = "";
+                        setStatus(
+                            selectedEntry.title + " - " + selectedEntry.mapper + " - " + selectedEntry.size + " bytes",
+                            false,
+                        );
+                    } catch (error) {
+                        clearSelection(error.message || "Could not read ROM");
+                    }
+                };
+                reader.onerror = function () {
+                    clearSelection("Could not read ROM");
+                };
+                reader.readAsArrayBuffer(file);
+            });
+
+            buildButton.addEventListener("click", function () {
+                if (!selectedEntry || !selectedBytes) return;
+                output.value = buildScript(selectedEntry, selectedBytes);
+                copyButton.disabled = false;
+                setStatus("Script ready for " + selectedEntry.title, false);
+            });
+
+            copyButton.addEventListener("click", function () {
+                function copied() {
+                    setStatus("Copied. Paste into Web IDE and send.", false);
+                }
+
+                output.focus();
+                output.select();
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(output.value).then(copied, function () {
+                        document.execCommand("copy");
+                        copied();
+                    });
+                } else {
+                    document.execCommand("copy");
+                    copied();
+                }
+            });
+        })();
+    </script>
+</body>
+
+</html>

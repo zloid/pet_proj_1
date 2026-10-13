@@ -50,7 +50,7 @@
       g.setColor(0xffff).setFont("6x8", 1).setFontAlign(0, 0);
       g.drawString("No ROMs installed", 88, 72);
       g.setColor(0x7bef);
-      g.drawString("Use the uploader to add one", 88, 92);
+      g.drawString("Import ROM on computer", 88, 92);
       return;
     }
 

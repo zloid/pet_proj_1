@@ -43,6 +43,20 @@ npm run web-ide -- --rom "C:\path\to\homebrew.gb"
 This creates the same `gbemu.roms.json` library entry expected by the app. For
 multiple ROMs or deleting ROMs later, use the App Loader interface instead.
 
+## Add ROMs After Installation
+
+To add ROMs without rebuilding or reinstalling the emulator, open
+`tools/gbemu-rom-uploader.html` in a desktop browser. Choose a legal `.gb` or
+`.bin` DMG ROM, select **Build Script**, then **Copy**. In the Espruino Web IDE,
+connect to the same Bangle.js 2, paste the generated script into the editor,
+and choose **Send to Espruino**.
+
+The script writes only the selected ROM and its `gbemu.roms.json` library
+entry, then opens GBEMU. On the watch, tap the start screen and select the ROM
+from the library. "Any ROM" here means any legal, supported DMG ROM that fits
+the watch's available storage; CGB-only ROMs and unsupported cartridge hardware
+are rejected.
+
 ## Compatibility
 
 The importer and engine support these DMG cartridge types:
