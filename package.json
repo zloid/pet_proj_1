@@ -5,7 +5,8 @@
   "description": "Game Boy DMG MVP for Bangle.js 2",
   "scripts": {
     "check": "node scripts/check-package.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "web-ide": "node scripts/build-web-ide-installer.js"
   },
   "engines": {
     "node": ">=20"

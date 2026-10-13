@@ -16,6 +16,33 @@ The app itself contains no commercial ROMs. Load only homebrew or ROM dumps that
 2. Open the app's App Loader interface and upload a raw `.gb` or `.bin` ROM.
 3. Open the app, tap the start screen, and choose a ROM.
 
+## Espruino Web IDE
+
+The project can generate one JavaScript installer for direct paste into the
+Espruino Web IDE. It installs the engine, application, launcher metadata, and
+icon into Bangle Storage, then launches the app.
+
+```sh
+npm run web-ide
+```
+
+Open `dist/gbemu-web-ide.js`, copy all of its contents into the Web IDE's left
+editor pane. First select **Connect**, choose **Bangle.js 2** in emulator mode
+(or connect your physical watch), and confirm that the terminal says
+`Connected to Emulator` or displays `Found BANGLEJS2`. Then choose **Send to
+Espruino**. The default installer does not contain a ROM; it preserves any
+library already on the watch.
+
+To install one DMG ROM at the same time, generate the installer with a ROM you
+are entitled to use:
+
+```sh
+npm run web-ide -- --rom "C:\path\to\homebrew.gb"
+```
+
+This creates the same `gbemu.roms.json` library entry expected by the app. For
+multiple ROMs or deleting ROMs later, use the App Loader interface instead.
+
 ## Compatibility
 
 The importer and engine support these DMG cartridge types:
