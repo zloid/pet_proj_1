@@ -17,8 +17,10 @@ test("runs the start, library, game, touch, and exit flow", () => {
   const drawCalls = [];
   const writes = {};
   const loadedSaves = [];
+  const reads = [];
   const events = {};
   const launchedTitles = [];
+  const launchedMappers = [];
   let ui;
   let created = 0;
 
@@ -80,7 +82,12 @@ test("runs the start, library, game, touch, and exit flow", () => {
     create(rom, metadata) {
       created += 1;
       launchedTitles.push(metadata.title);
+      launchedMappers.push(metadata.mapper);
       return game;
+    },
+    parseHeader(rom) {
+      if (rom !== "manual rom") throw new Error("Invalid DMG ROM");
+      return { title: "Manual ROM", cartridgeType: 0x01, cgbFlag: 0 };
     },
   };
 
@@ -143,8 +150,21 @@ test("runs the start, library, game, touch, and exit flow", () => {
                 },
               ];
             },
-            read(name) {
+            list() {
+              return [
+                "gbemu.rom.test",
+                "gbemu.rom.test2",
+                "gbemu.rom.test3",
+                "gbemu.rom.test4",
+                "gbemu.rom.test5",
+                "gbemu.rom.test6",
+                "manual.gb",
+              ];
+            },
+            read(name, offset, length) {
+              reads.push({ name, offset, length });
               if (name === "gbemu.save.test") return "\x99";
+              if (name === "manual.gb") return "manual rom";
               return "test rom";
             },
             write(name, value) {
@@ -176,6 +196,12 @@ test("runs the start, library, game, touch, and exit flow", () => {
 
   assert.equal(ui.mode, "custom");
   ui.touch(1, { x: 88, y: 80 });
+  assert.ok(
+    reads.some(
+      (read) =>
+        read.name === "manual.gb" && read.offset === 0 && read.length === 0x150,
+    ),
+  );
   ui.touch(1, { x: 20, y: 35 });
   assert.equal(created, 1);
   assert.deepEqual(loadedSaves, ["\x99"]);
@@ -197,5 +223,18 @@ test("runs the start, library, game, touch, and exit flow", () => {
   assert.equal(created, 2);
   assert.deepEqual(launchedTitles, ["Test ROM", "Test ROM 6"]);
   ui.btn();
+
+  ui.touch(1, { x: 140, y: 160 });
+  ui.touch(1, { x: 20, y: 58 });
+  assert.equal(created, 3);
+  assert.deepEqual(launchedTitles, ["Test ROM", "Test ROM 6", "Manual ROM"]);
+  assert.equal(launchedMappers.at(-1), "MBC1");
+  ui.btn();
+  assert.equal(
+    writes[
+      Object.keys(writes).find((name) => name.indexOf("gbemu.save.file.") === 0)
+    ],
+    "GB",
+  );
 });
 

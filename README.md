@@ -57,6 +57,12 @@ from the library. "Any ROM" here means any legal, supported DMG ROM that fits
 the watch's available storage; CGB-only ROMs and unsupported cartridge hardware
 are rejected.
 
+GBEMU also scans Bangle Storage whenever its ROM library opens. ROMs uploaded
+separately as normal Storage files appear without a `gbemu.roms.json` entry
+when their file name is `gbemu.rom.*`, ends in `.gb`, or ends in `.bin`.
+Bangle Storage is flat, so use a file name such as `homebrew.gb` rather than a
+folder path. Invalid or unsupported files are ignored.
+
 ## Compatibility
 
 The importer and engine support these DMG cartridge types:

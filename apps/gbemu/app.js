@@ -2,6 +2,7 @@
   var Storage = require("Storage");
   var Core = require("gbemu.engine");
   var INDEX_FILE = "gbemu.roms.json";
+  var ROM_FILE_PREFIX = "gbemu.rom.";
   var screen = { mode: "start", games: [] };
   var gameCore;
   var gameButtons = 0;
@@ -12,9 +13,100 @@
   var CYCLES_PER_TICK = 8192;
   var LIBRARY_PAGE_SIZE = 5;
 
+  function mapperName(cartridgeType) {
+    if (
+      cartridgeType === 0x00 ||
+      cartridgeType === 0x08 ||
+      cartridgeType === 0x09
+    ) {
+      return "ROM ONLY";
+    }
+    if (
+      cartridgeType === 0x01 ||
+      cartridgeType === 0x02 ||
+      cartridgeType === 0x03
+    ) {
+      return "MBC1";
+    }
+    if (cartridgeType === 0x05 || cartridgeType === 0x06) return "MBC2";
+    if (cartridgeType >= 0x0f && cartridgeType <= 0x13) return "MBC3";
+    if (cartridgeType >= 0x19 && cartridgeType <= 0x1e) return "MBC5";
+    return undefined;
+  }
+
+  function isRomFile(filename) {
+    if (typeof filename !== "string") return false;
+    var lower = filename.toLowerCase();
+    return (
+      filename.indexOf(ROM_FILE_PREFIX) === 0 ||
+      lower.substr(-3) === ".gb" ||
+      lower.substr(-4) === ".bin"
+    );
+  }
+
+  function gameFromFile(filename) {
+    var rom = Storage.read(filename, 0, 0x150);
+    var header;
+    var mapper;
+
+    if (!rom) return undefined;
+    try {
+      header = Core.parseHeader(rom);
+      mapper = mapperName(header.cartridgeType);
+    } catch (error) {
+      return undefined;
+    }
+    if (!mapper || (header.cgbFlag !== 0 && header.cgbFlag !== 0x80))
+      return undefined;
+    return {
+      title: header.title || filename,
+      file: filename,
+      mapper: mapper,
+    };
+  }
+
+  function hasGame(games, filename) {
+    var index;
+    for (index = 0; index < games.length; index += 1) {
+      if (games[index].file === filename) return true;
+    }
+    return false;
+  }
+
+  function appendGame(games, game) {
+    if (!game || typeof game.file !== "string" || hasGame(games, game.file))
+      return;
+    games.push(game);
+  }
+
   function getGames() {
-    var games = Storage.readJSON(INDEX_FILE, 1);
-    return Array.isArray(games) ? games : [];
+    var indexed = Storage.readJSON(INDEX_FILE, 1);
+    var games = [];
+    var files;
+    var filename;
+    var index;
+
+    if (!Array.isArray(indexed)) indexed = [];
+    if (typeof Storage.list !== "function") return indexed;
+    try {
+      files = Storage.list();
+    } catch (error) {
+      return indexed;
+    }
+    if (!Array.isArray(files)) return indexed;
+
+    for (index = 0; index < indexed.length; index += 1) {
+      if (indexed[index] && files.indexOf(indexed[index].file) >= 0) {
+        appendGame(games, indexed[index]);
+      }
+    }
+    for (index = 0; index < files.length; index += 1) {
+      filename = files[index];
+      if (isRomFile(filename) && !hasGame(games, filename)) {
+        appendGame(games, gameFromFile(filename));
+      }
+    }
+    return games;
   }
 
   function drawHeader(title) {
@@ -50,7 +142,7 @@
       g.setColor(0xffff).setFont("6x8", 1).setFontAlign(0, 0);
       g.drawString("No ROMs installed", 88, 72);
       g.setColor(0x7bef);
-      g.drawString("Import ROM on computer", 88, 92);
+      g.drawString("Upload .gb/.bin to Storage", 88, 92);
       return;
     }
 
@@ -94,9 +186,17 @@
 
   function saveFileForGame(game) {
     var identifier = game && game.crc;
+    var index;
     if (!identifier && game && typeof game.file === "string") {
       if (game.file.indexOf("gbemu.rom.") === 0)
         identifier = game.file.substr(10);
+      else {
+        identifier = 5381;
+        for (index = 0; index < game.file.length; index += 1) {
+          identifier = ((identifier * 33) ^ game.file.charCodeAt(index)) >>> 0;
+        }
+        identifier = "file." + identifier.toString(16);
+      }
     }
     return identifier ? "gbemu.save." + identifier : undefined;
   }
