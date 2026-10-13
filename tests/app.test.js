@@ -21,8 +21,10 @@ test("runs the start, library, game, touch, and exit flow", () => {
   const events = {};
   const launchedTitles = [];
   const launchedMappers = [];
+  const cycleBudgets = [];
   let ui;
   let created = 0;
+  let frameCount = 0;
 
   const graphics = {
     getWidth: () => 176,
@@ -58,9 +60,15 @@ test("runs the start, library, game, touch, and exit flow", () => {
     setButtons(buttons) {
       inputs.push(buttons);
     },
-    runCycles() {},
+    runCycles(cycles) {
+      cycleBudgets.push(cycles);
+      frameCount += 1;
+    },
     getFrame() {
       return { width: 160, height: 144, bpp: 2, buffer: new ArrayBuffer(1) };
+    },
+    getFrameCount() {
+      return frameCount;
     },
     getSaveData() {
       return new Uint8Array([0x47, 0x42]);
@@ -205,12 +213,15 @@ test("runs the start, library, game, touch, and exit flow", () => {
   ui.touch(1, { x: 20, y: 35 });
   assert.equal(created, 1);
   assert.deepEqual(loadedSaves, ["\x99"]);
+  assert.deepEqual(cycleBudgets, []);
   assert.ok(drawCalls.length > 0);
   assert.equal(typeof listeners.drag, "function");
 
   listeners.drag({ x: 160, y: 140, b: 1 });
   timers[0]();
+  assert.deepEqual(cycleBudgets, [256]);
   assert.ok(inputs.includes(core.BUTTON_A));
+  assert.ok(drawCalls.length > 1);
 
   ui.btn();
   assert.equal(listeners.drag, undefined);

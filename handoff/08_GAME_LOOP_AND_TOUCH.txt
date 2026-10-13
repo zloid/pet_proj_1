@@ -5,14 +5,15 @@ Connect the emulator core to the actual Bangle.js application experience.
 
 Implemented in apps/gbemu/app.js:
 - Selecting a ROM creates Core.create(rom, game) and starts execution.
-- A cooperative setTimeout loop runs 8192 DMG cycles every approximately 30 ms.
+- The original scheduler ran 8192 DMG cycles every approximately 30 ms.
+- That batch is too large for Espruino Web IDE and is superseded by 18_COOPERATIVE_LOOP.txt.
 - The 160x144 2-bpp framebuffer is drawn at 0.75 scale in the top area.
 - The lower screen is a touch control layout: D-pad, Select, Start, B, A.
 - The physical Bangle button exits an active game back to the ROM library.
 - An unsupported instruction or other runtime error stops emulation and shows an error screen.
 
 Important tradeoff:
-The current scheduler intentionally prioritizes responsiveness and correctness over speed. It should be expected to run substantially slower than real DMG hardware until optional native acceleration is added.
+The scheduler intentionally prioritizes responsiveness and correctness over speed. It should be expected to run substantially slower than real DMG hardware until optional native acceleration is added.
 
 Next action:
-The browser-based ROM importer is complete in 09_ROM_IMPORTER.txt. Next, validate the full flow on real hardware.
+Read 18_COOPERATIVE_LOOP.txt for the current tick size and redraw policy.

@@ -10,7 +10,10 @@
   var tapRelease;
   var gameSaveFile;
   var gameTicks = 0;
-  var CYCLES_PER_TICK = 8192;
+  var lastFrameCount = -1;
+  var lastDrawnButtons = -1;
+  var CYCLES_PER_TICK = 256;
+  var TICK_INTERVAL_MS = 1;
   var LIBRARY_PAGE_SIZE = 5;
 
   function mapperName(cartridgeType) {
@@ -217,12 +220,8 @@
     g.drawString(label, (x1 + x2) / 2, (y1 + y2) / 2);
   }
 
-  function drawGame() {
-    g.reset();
-    g.setColor(0x0000).fillRect(0, 0, 175, 175);
-    g.drawImage(gameCore.getFrame(), 28, 1, { scale: 0.75 });
-    g.setColor(0xafe5).drawRect(27, 0, 148, 109);
-
+  function drawGameKeys() {
+    lastDrawnButtons = gameButtons;
     drawKey(20, 112, 37, 130, "U", Core.BUTTON_UP);
     drawKey(1, 133, 19, 151, "L", Core.BUTTON_LEFT);
     drawKey(39, 133, 57, 151, "R", Core.BUTTON_RIGHT);
@@ -231,6 +230,18 @@
     drawKey(90, 145, 117, 169, "ST", Core.BUTTON_START);
     drawKey(121, 130, 147, 157, "B", Core.BUTTON_B);
     drawKey(150, 130, 175, 157, "A", Core.BUTTON_A);
+  }
+
+  function drawGameFrame() {
+    g.drawImage(gameCore.getFrame(), 28, 1, { scale: 0.75 });
+    g.setColor(0xafe5).drawRect(27, 0, 148, 109);
+  }
+
+  function drawGame() {
+    g.reset();
+    g.setColor(0x0000).fillRect(0, 0, 175, 175);
+    drawGameFrame();
+    drawGameKeys();
   }
 
   function controlAt(x, y) {
@@ -268,19 +279,31 @@
     gameCore = undefined;
     gameSaveFile = undefined;
     gameTicks = 0;
+    lastFrameCount = -1;
+    lastDrawnButtons = -1;
     if (Bangle.removeListener) Bangle.removeListener("drag", onGameDrag);
     Bangle.setLCDTimeout(10);
   }
 
+  function currentFrameCount() {
+    return gameCore.getFrameCount ? gameCore.getFrameCount() : lastFrameCount;
+  }
+
   function gameTick() {
+    var frameCount;
     if (!gameCore) return;
     try {
       gameCore.setButtons(gameButtons);
       gameCore.runCycles(CYCLES_PER_TICK);
-      drawGame();
       gameTicks += 1;
+      frameCount = currentFrameCount();
+      if (frameCount !== lastFrameCount) {
+        lastFrameCount = frameCount;
+        drawGameFrame();
+      }
+      if (lastDrawnButtons !== gameButtons) drawGameKeys();
       if (gameTicks % 1000 === 0) saveGameRam();
-      gameTimer = setTimeout(gameTick, 30);
+      gameTimer = setTimeout(gameTick, TICK_INTERVAL_MS);
     } catch (error) {
       stopGame();
       showError(error.message || "Emulation stopped");
@@ -292,10 +315,13 @@
     gameButtons = 0;
     gameSaveFile = saveFile;
     gameTicks = 0;
+    lastFrameCount = currentFrameCount();
+    lastDrawnButtons = -1;
     screen.mode = "game";
     Bangle.setLCDTimeout(0);
     Bangle.on("drag", onGameDrag);
-    gameTick();
+    drawGame();
+    gameTimer = setTimeout(gameTick, TICK_INTERVAL_MS);
   }
 
   function launchGame(game) {

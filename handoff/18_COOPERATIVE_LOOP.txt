@@ -1,0 +1,26 @@
+Status: Complete
+
+Purpose:
+Keep the watch and Espruino Web IDE responsive after a ROM is selected.
+
+Problem:
+- The first game screen was a blank DMG framebuffer plus on-screen keys.
+- runCycles(8192) ran a blocking CPU/PPU batch before yielding.
+- Espruino Web IDE then hit its execution timeout, so later ticks never ran.
+
+Implemented in apps/gbemu/app.js:
+- Launch draws the game chrome immediately, then schedules emulation.
+- Each tick runs 256 DMG cycles and yields with setTimeout(..., 1).
+- The framebuffer is redrawn only when core.getFrameCount() changes.
+- On-screen keys are redrawn only when the Joypad mask changes.
+
+Validation:
+- tests/app.test.js launches a ROM without a synchronous runCycles call.
+- The first scheduled tick uses a 256-cycle budget and then draws again.
+
+Limit:
+- This does not make the emulator real-time. Title screens still appear slowly.
+- Native E.compiledC acceleration remains a later, profile-driven step.
+
+Next action:
+Rebuild dist/gbemu-web-ide.js, send it to Espruino Web IDE, and confirm a legal ROM keeps animating past the first blank frame.

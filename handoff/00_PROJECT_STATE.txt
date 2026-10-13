@@ -13,6 +13,7 @@ Current state:
 - The app reads the ROM library manifest from gbemu.roms.json.
 - The executable JS DMG core is apps/gbemu/gbemu.engine.js.
 - The App Loader interface imports user-provided .gb/.bin files.
+- The in-game loop yields every 256 DMG cycles so Web IDE no longer freezes on launch.
 - Local package and host-side emulator checks pass; hardware validation remains.
 
 Read the remaining numbered files in order before changing the project.
