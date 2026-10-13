@@ -1,0 +1,13 @@
+Status: Local checks complete; device check pending
+
+Required checks after each code edit:
+1. Run npm run check for package shape, metadata, and JavaScript syntax.
+2. Run npm test for host-side CPU and ROM parser tests once those tests exist.
+3. npm test also includes a mocked app-flow smoke test.
+4. Test on actual Bangle.js 2 through the Web IDE or a fork of BangleApps.
+
+Acceptance flow for the MVP:
+Open app -> tap start -> select a user-provided legal test ROM -> reach its title screen -> use touch controls -> return safely to the library.
+
+Known limitation:
+No physical Bangle.js 2 is connected in this workspace, so device behavior must be validated separately after local checks pass.

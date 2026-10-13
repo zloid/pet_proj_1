@@ -1,0 +1,18 @@
+Status: Complete
+
+Purpose:
+Expand the DMG cartridge set beyond ROM ONLY and MBC1 while preserving explicit limits for unsupported hardware.
+
+Implemented:
+- MBC3 cartridge types 0x0f through 0x13 support 7-bit ROM banking and external RAM banking.
+- MBC3 RTC behavior and persistence are documented in handoff/17_MBC3_RTC.txt.
+- MBC5 cartridge types 0x19 through 0x1e support 9-bit ROM banking and external RAM banking.
+- The App Loader importer recognizes the same mapper types as the engine.
+- Host tests cover MBC3 ROM/RAM banks, MBC5 high ROM/RAM banks, and importer acceptance.
+
+Explicit limits:
+- MBC7, HuC-family mappers, camera hardware, and CGB-only ROMs are not supported.
+- MBC5 rumble is ignored without changing the selected RAM bank.
+
+Next action:
+Run all supported mapper families on real Bangle.js 2 hardware with legal ROMs, then add the next mapper only from a concrete failing ROM or test program.

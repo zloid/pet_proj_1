@@ -1,0 +1,16 @@
+Status: Complete
+
+Purpose:
+Allow users to remove imported ROMs and reclaim Bangle Storage.
+
+Implemented:
+- Each ROM listed by interface.html now has a Delete command.
+- The App Loader confirmation protects against accidental deletion.
+- Deletion erases the ROM, its gbemu.save.<crc> file when present, and then rewrites gbemu.roms.json.
+- tests/interface.test.js executes the inline App Loader script with a small DOM/Util mock and verifies cleanup order and library-index update.
+
+Limit:
+- Removal is currently available in the App Loader companion interface, not on the watch library screen.
+
+Next action:
+Validate import, launch, save, and delete behavior on a real Bangle.js 2 with a legal ROM.

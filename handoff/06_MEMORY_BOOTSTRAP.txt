@@ -1,0 +1,18 @@
+Status: Complete
+
+Purpose:
+Establish a testable, ROM ONLY DMG baseline before implementing more opcodes.
+
+Implemented in apps/gbemu/gbemu.engine.js:
+- Header parsing for title, cartridge type, ROM size, RAM size, and CGB flag.
+- Rejection of CGB-only and non-ROM ONLY cartridges.
+- Standard post-boot DMG register values.
+- ROM, VRAM, work RAM, echo RAM, OAM, I/O, HRAM, and IE memory regions.
+- Reset behavior for DIV and LY and immediate OAM DMA.
+- Initial CPU instructions: NOP, HALT, LD A,d8, LD (a16),A, LD A,(a16).
+
+Validation:
+- tests/core.test.js covers header parsing, boot registers, memory mirroring, and the initial opcode slice.
+
+Next action:
+Grow the instruction decoder in small tested groups. Do not add PPU timing until the CPU can execute normal ROM initialization code.

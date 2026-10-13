@@ -1,0 +1,14 @@
+Status: Complete
+
+Purpose:
+Support the compact MBC2 cartridge family without treating its internal RAM like ordinary external cartridge RAM.
+
+Implemented:
+- Cartridge types 0x05 and 0x06 are recognized by the engine and App Loader importer.
+- MBC2 ROM-bank writes honor address bit A8.
+- The core allocates 512 bytes of internal 4-bit RAM, mirrors the low 9 address bits, and returns a high nibble of ones on reads.
+- MBC2 RAM is included in the existing per-ROM save-data path.
+- Core and importer tests cover bank switching, RAM mirroring, nibble masking, RAM disable behavior, and import selection.
+
+Next action:
+Use a real Bangle.js 2 to validate all supported mapper families, including the RTC against a synchronized device clock.

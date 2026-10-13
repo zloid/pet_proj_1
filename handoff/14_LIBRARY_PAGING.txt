@@ -1,0 +1,16 @@
+Status: Complete
+
+Purpose:
+Make every imported ROM reachable from the on-watch library instead of only the first six entries.
+
+Implemented:
+- The library shows five ROMs per page.
+- When needed, touch controls at the bottom move to the previous or next page.
+- Selection is translated from the visible row to the correct absolute library entry.
+- tests/app.test.js launches the sixth ROM through the second page.
+
+Limit:
+- There is no scroll gesture or page memory after returning from a game; the library returns to page one.
+
+Next action:
+Run the complete import, paging, save, delete, and launch journey on real Bangle.js 2 hardware.

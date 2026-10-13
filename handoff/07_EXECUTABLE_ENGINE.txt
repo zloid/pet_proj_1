@@ -1,0 +1,24 @@
+Status: Complete
+
+Purpose:
+Replace the earlier core stub with a functional, portable DMG emulator engine.
+
+Implemented in apps/gbemu/gbemu.engine.js:
+- Full LR35902 instruction decoder, including CB-prefixed instructions.
+- Interrupt service, HALT, EI/DI, stack operations, arithmetic flags, and DMA.
+- DMG memory map, timer, joypad register, VBlank timing, and basic STAT state.
+- ROM ONLY plus MBC1 cartridge banking and external RAM.
+- Background, window, and sprite renderer into a 160x144 2-bpp framebuffer.
+- No boot ROM, sound, MBC2/MBC3/MBC5, CGB, RTC, or persistent save integration yet.
+
+Important API:
+- Core.create(rom, metadata)
+- core.runCycles(cycles)
+- core.setButtons(mask)
+- core.getFrame() returns a Graphics.drawImage-compatible image object.
+
+Validation coverage:
+- CPU load/store, CB instructions, stack transfer, MBC1 banking, timer increment, and first PPU scanline.
+
+Next action:
+Wire app.js to this engine with a scheduled execution loop, renderer, and touchscreen Joypad mapping.

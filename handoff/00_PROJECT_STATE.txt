@@ -1,0 +1,18 @@
+Project: Bangle.js 2 Game Boy DMG emulator MVP
+Status: In progress
+
+Goal:
+- Ordinary BangleApps/App Loader application.
+- No bundled commercial ROMs or sound.
+- Tap start screen, choose a user-supplied ROM, play with on-screen controls.
+- FPS is not an MVP acceptance criterion.
+
+Current state:
+- Empty repository was converted into a standalone App Loader-compatible package.
+- The start screen, ROM library, execution loop, and touch controls are in apps/gbemu/app.js.
+- The app reads the ROM library manifest from gbemu.roms.json.
+- The executable JS DMG core is apps/gbemu/gbemu.engine.js.
+- The App Loader interface imports user-provided .gb/.bin files.
+- Local package and host-side emulator checks pass; hardware validation remains.
+
+Read the remaining numbered files in order before changing the project.

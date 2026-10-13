@@ -1,0 +1,24 @@
+{
+  "id": "gbemu",
+  "name": "Game Boy DMG",
+  "shortName": "GB DMG",
+  "version": "0.04",
+  "author": "zloid",
+  "description": "Game Boy DMG emulator MVP for user-provided homebrew and cartridge dumps.",
+  "icon": "app.svg",
+  "tags": "game",
+  "supports": ["BANGLEJS2"],
+  "allow_emulator": true,
+  "interface": "interface.html",
+  "storage": [
+    { "name": "gbemu.app.js", "url": "app.js" },
+    { "name": "gbemu.engine", "url": "gbemu.engine.js" },
+    { "name": "gbemu.img", "url": "app-icon.js", "evaluate": true }
+  ],
+  "data": [
+    { "name": "gbemu.roms.json" },
+    { "wildcard": "gbemu.rom.*" },
+    { "wildcard": "gbemu.save.*" }
+  ]
+}
+

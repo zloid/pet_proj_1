@@ -1,0 +1,217 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="../../css/spectre.min.css">
+</head>
+
+<body>
+    <main class="container grid-lg">
+        <section class="columns">
+            <div class="column col-12">
+                <form id="rom-form">
+                    <div class="form-group">
+                        <label class="form-label" for="rom-file">ROM file</label>
+                        <input id="rom-file" class="form-input" type="file" accept=".gb,.bin,application/octet-stream">
+                    </div>
+                    <button id="upload" class="btn btn-primary" type="submit" disabled>Upload</button>
+                </form>
+                <p id="status" class="text-gray"></p>
+            </div>
+        </section>
+        <section class="columns">
+            <div class="column col-12">
+                <ul id="rom-list" class="menu"></ul>
+            </div>
+        </section>
+    </main>
+    <script src="../../core/lib/interface.js"></script>
+    <script>
+        (function () {
+            "use strict";
+
+            var INDEX_FILE = "gbemu.roms.json";
+            var selectedFile;
+            var selectedBytes;
+            var roms = [];
+            var fileInput = document.getElementById("rom-file");
+            var uploadButton = document.getElementById("upload");
+            var status = document.getElementById("status");
+            var list = document.getElementById("rom-list");
+
+            function crc32(bytes) {
+                var crc = 0xffffffff;
+                var index;
+                var bit;
+                for (index = 0; index < bytes.length; index += 1) {
+                    crc ^= bytes[index];
+                    for (bit = 0; bit < 8; bit += 1) {
+                        crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+                    }
+                }
+                return (crc ^ 0xffffffff) >>> 0;
+            }
+
+            function titleFrom(bytes) {
+                var title = "";
+                var index;
+                var value;
+                for (index = 0x134; index < 0x144; index += 1) {
+                    value = bytes[index];
+                    if (!value) break;
+                    title += value >= 32 && value < 127 ? String.fromCharCode(value) : " ";
+                }
+                return title.trim() || "Untitled ROM";
+            }
+
+            function mapperFrom(type) {
+                if (type === 0x00 || type === 0x08 || type === 0x09) return "ROM ONLY";
+                if (type === 0x01 || type === 0x02 || type === 0x03) return "MBC1";
+                if (type === 0x05 || type === 0x06) return "MBC2";
+                if (type >= 0x0f && type <= 0x13) return "MBC3";
+                if (type >= 0x19 && type <= 0x1e) return "MBC5";
+                return "Unsupported 0x" + type.toString(16);
+            }
+
+            function binaryString(bytes) {
+                var result = "";
+                var start;
+                var end;
+                var index;
+                var chunk;
+                for (start = 0; start < bytes.length; start += 4096) {
+                    end = Math.min(start + 4096, bytes.length);
+                    chunk = "";
+                    for (index = start; index < end; index += 1) {
+                        chunk += String.fromCharCode(bytes[index]);
+                    }
+                    result += chunk;
+                }
+                return result;
+            }
+
+            function renderList() {
+                var index;
+                var item;
+                var button;
+                var entry;
+                list.innerHTML = "";
+                for (index = 0; index < roms.length; index += 1) {
+                    entry = roms[index];
+                    item = document.createElement("li");
+                    item.className = "menu-item";
+                    item.textContent = entry.title + " - " + entry.mapper + " ";
+                    button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "btn btn-sm float-right";
+                    button.textContent = "Delete";
+                    button.addEventListener("click", function (selected) {
+                        return function () {
+                            deleteRom(selected);
+                        };
+                    }(entry));
+                    item.appendChild(button);
+                    list.appendChild(item);
+                }
+            }
+
+            function loadLibrary() {
+                Util.readStorageJSON(INDEX_FILE, function (data) {
+                    roms = Array.isArray(data) ? data : [];
+                    renderList();
+                });
+            }
+
+            function reject(message) {
+                selectedFile = undefined;
+                selectedBytes = undefined;
+                uploadButton.disabled = true;
+                status.textContent = message;
+            }
+
+            function deleteRom(entry) {
+                var saveFile = entry.crc ? "gbemu.save." + entry.crc : undefined;
+
+                function updateIndex() {
+                    roms = roms.filter(function (existing) {
+                        return existing.file !== entry.file;
+                    });
+                    Util.writeStorage(INDEX_FILE, JSON.stringify(roms), function () {
+                        status.textContent = "Removed " + entry.title;
+                        renderList();
+                    });
+                }
+
+                if (!window.confirm("Delete " + entry.title + "?")) return;
+                status.textContent = "Removing " + entry.title;
+                Util.eraseStorage(entry.file, function () {
+                    if (saveFile) Util.eraseStorage(saveFile, updateIndex);
+                    else updateIndex();
+                });
+            }
+
+            function acceptFile(file, bytes) {
+                var mapper;
+                if (bytes.length < 0x150) return reject("Not a valid DMG ROM");
+                if (bytes[0x143] !== 0 && bytes[0x143] !== 0x80) {
+                    return reject("CGB-only ROMs are unsupported");
+                }
+                mapper = mapperFrom(bytes[0x147]);
+                if (mapper.indexOf("Unsupported") === 0) return reject(mapper);
+                selectedFile = file;
+                selectedBytes = bytes;
+                uploadButton.disabled = false;
+                status.textContent = titleFrom(bytes) + " - " + mapper;
+            }
+
+            fileInput.addEventListener("change", function () {
+                var file = fileInput.files[0];
+                var reader;
+                if (!file) return;
+                reader = new FileReader();
+                reader.onload = function () {
+                    acceptFile(file, new Uint8Array(reader.result));
+                };
+                reader.onerror = function () {
+                    reject("Could not read ROM file");
+                };
+                reader.readAsArrayBuffer(file);
+            });
+
+            document.getElementById("rom-form").addEventListener("submit", function (event) {
+                var checksum;
+                var filename;
+                var entry;
+                event.preventDefault();
+                if (!selectedFile || !selectedBytes) return;
+
+                checksum = crc32(selectedBytes).toString(16);
+                filename = "gbemu.rom." + checksum;
+                entry = {
+                    title: titleFrom(selectedBytes),
+                    file: filename,
+                    mapper: mapperFrom(selectedBytes[0x147]),
+                    crc: checksum,
+                    size: selectedBytes.length
+                };
+
+                uploadButton.disabled = true;
+                status.textContent = "Uploading " + entry.title;
+                Util.writeStorage(filename, binaryString(selectedBytes), function () {
+                    roms = roms.filter(function (existing) { return existing.file !== filename; });
+                    roms.push(entry);
+                    Util.writeStorage(INDEX_FILE, JSON.stringify(roms), function () {
+                        selectedFile = undefined;
+                        selectedBytes = undefined;
+                        fileInput.value = "";
+                        status.textContent = "Installed " + entry.title;
+                        renderList();
+                    });
+                });
+            });
+
+            window.onInit = loadLibrary;
+        })();
+    </script>
+</body>
+
+</html>

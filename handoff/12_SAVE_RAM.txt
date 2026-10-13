@@ -1,0 +1,17 @@
+Status: Complete
+
+Purpose:
+Persist cartridge battery RAM for supported ROM ONLY/MBC1 cartridges.
+
+Implemented:
+- The app derives gbemu.save.<crc> from a ROM library entry.
+- Existing save data is loaded into Core before a game starts.
+- Non-empty cartridge RAM is saved when the player exits, when Espruino kills the app, and every 1,000 scheduler ticks.
+- The engine and mocked UI tests cover RAM restoration and Storage write behavior.
+
+Limits:
+- Save data is only meaningful for cartridge types whose RAM is implemented by the current engine.
+- No save-management UI or deletion action exists yet.
+
+Next action:
+Add ROM-library paging/deletion in the App Loader interface and on the watch, then validate a real MBC1 RAM game on hardware.

@@ -1,0 +1,4 @@
+0.04: Add MBC3 RTC support with persistent clock state.
+0.03: Add MBC2 mapper support with internal 4-bit RAM.
+0.02: Add MBC3 (without RTC) and MBC5 mapper support, save RAM persistence, and ROM deletion.
+0.01: Initial Game Boy DMG MVP package and ROM library shell.

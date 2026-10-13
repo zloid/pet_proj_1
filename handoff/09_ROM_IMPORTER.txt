@@ -1,0 +1,24 @@
+Status: Complete
+
+Purpose:
+Allow a user to load their own raw Game Boy DMG ROM without embedding any ROM in the BangleApps package.
+
+Implemented in apps/gbemu/interface.html:
+- Uses the Bangle App Loader interface API and the active Bluetooth connection.
+- Accepts raw .gb and .bin files.
+- Checks minimum DMG header size, rejects CGB-only ROMs, and accepts ROM ONLY, MBC1, MBC2, MBC3, and MBC5.
+- Generates a CRC32-derived short filename: gbemu.rom.<crc>.
+- Writes binary ROM bytes first, then updates gbemu.roms.json.
+- Shows installed library entries in the interface and can delete a ROM with its save data.
+
+Storage contract:
+- A ROM entry has title, file, mapper, crc, and size.
+- The app uses title, file, mapper, and crc; crc identifies its save data.
+
+Known limits:
+- ZIP archives are not accepted in the MVP.
+- Available Bangle Storage controls the largest file that can fit.
+- The importer has no ZIP support, progress meter, or explicit free-space check.
+
+Next action:
+Run package checks, then test the whole flow on an actual Bangle.js 2 with a legal homebrew or owned DMG ROM.

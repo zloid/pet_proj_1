@@ -1,0 +1,15 @@
+Status: Complete
+
+Target layout:
+- Upper area: scaled DMG framebuffer.
+- Lower-left: directional pad, including diagonal zones.
+- Lower-center: Select and Start.
+- Lower-right: B and A.
+
+Hardware limitation:
+Bangle.js 2 exposes a single touch point. Tetris is therefore the best first acceptance ROM. A game requiring simultaneous direction plus action will need a later input-latch policy or a compatibility mode.
+
+Implementation requirements:
+- Drag events set and clear Joypad bits while a finger is held.
+- Tap events produce a 100 ms Joypad pulse for direct taps.
+- Exiting a game clears all held input and removes the drag listener.

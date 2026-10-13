@@ -1,0 +1,19 @@
+Status: Complete
+
+Purpose:
+Support the real-time clock in MBC3 timer cartridges without losing time or cartridge RAM across app exits.
+
+Implemented:
+- Cartridge types 0x0f and 0x10 are accepted as MBC3 RTC cartridges.
+- RTC registers 0x08 through 0x0c use the MBC3 0-to-1 latch protocol.
+- Seconds, minutes, hours, 9-bit day count, halt, and carry state advance from the Bangle system clock.
+- RTC saves use a GBRT version-1 binary header, RTC registers, a Unix-second timestamp, and then cartridge RAM.
+- Old raw RAM saves still load as cartridge RAM without RTC state.
+- The app uses getSaveData/loadSaveData when present and falls back to the earlier raw RAM API.
+- Host tests cover latching, elapsed time, persistence, cartridge RAM, halt behavior, and importer acceptance.
+
+Operational limit:
+- RTC accuracy depends on the Bangle system clock being synchronized.
+
+Next action:
+Run a real Bangle.js 2 RTC cartridge through import, save, app restart, and elapsed-time checks before expanding to special hardware mappers.

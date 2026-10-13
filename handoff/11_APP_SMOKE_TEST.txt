@@ -1,0 +1,14 @@
+Status: Complete
+
+Purpose:
+Validate the cross-layer MVP journey without a connected Bangle.js 2.
+
+Implemented:
+- tests/app.test.js evaluates app.js with mocked Bangle, Graphics, Storage, and engine APIs.
+- It covers start screen -> ROM library -> ROM launch -> touch A -> physical-button exit.
+
+Scope limit:
+This is an API-contract test, not a display or Bluetooth test. It cannot prove touch-event timing, LCD scaling, Storage capacity, or emulator performance on actual hardware.
+
+Next action:
+Use the real App Loader with a Bangle.js 2 and a legal homebrew/owned ROM. Record any device-specific failure in a new numbered handoff file before changing the code.

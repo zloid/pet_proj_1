@@ -1,0 +1,16 @@
+Status: Complete
+
+Purpose:
+Keep the continuation notes accurate after the MVP implementation crossed its original planning milestones.
+
+Current implementation boundary:
+- App Loader package, ROM importer, core engine, scheduler, frame renderer, and touchscreen controls exist.
+- Local tests and package validation pass.
+- The remaining MVP gate is an actual Bangle.js 2 device test with a legal ROM.
+
+Canonical implementation files:
+- apps/gbemu/app.js
+- apps/gbemu/gbemu.engine.js
+- apps/gbemu/interface.html
+
+Do not resurrect apps/gbemu/gbemu.core.js. It was an early stub and has been removed.

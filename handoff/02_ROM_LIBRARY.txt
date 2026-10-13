@@ -1,0 +1,18 @@
+Status: Complete
+
+MVP storage contract:
+- gbemu.roms.json contains an array of entries.
+- Each entry has at least: title, file, mapper.
+- ROM bytes are stored in files named gbemu.rom.<id>.
+
+Example manifest entry:
+{"title":"My Homebrew","file":"gbemu.rom.demo","mapper":"ROM ONLY"}
+
+Current behavior:
+- Tapping the start screen opens the library.
+- Tapping a listed entry loads its bytes from Storage and hands them to Core.create.
+- Missing files and invalid ROM data show an error screen.
+- The App Loader interface imports ROM data and maintains the manifest.
+
+Next action:
+For future work, add scrolling and deletion for large ROM libraries. Do not include commercial ROMs in this repository or the App Loader package.

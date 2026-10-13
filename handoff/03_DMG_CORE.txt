@@ -1,0 +1,18 @@
+Status: Superseded by 07_EXECUTABLE_ENGINE.txt
+
+Target MVP compatibility:
+- Game Boy DMG only.
+- ROM ONLY and MBC1 cartridge types.
+- No sound, persistent save integration, Game Boy Color, or boot ROM.
+
+Current state:
+- apps/gbemu/gbemu.engine.js implements the core and app.js runs it.
+- Read 07_EXECUTABLE_ENGINE.txt for API and test coverage.
+
+Implementation order:
+1. Add persistent cartridge RAM saves.
+2. Add native E.compiledC acceleration only after profiling the JS baseline.
+3. Add more cartridge mappers after the MVP is stable on hardware.
+
+Risk:
+The MVP can be slow, but instruction semantics and memory mapping must be correct before optimizing.
